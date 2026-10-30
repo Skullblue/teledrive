@@ -1,0 +1,15 @@
+# Dependencies
+engine/node_modules/
+
+# Android build outputs & local config
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log

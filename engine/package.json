@@ -1,0 +1,1 @@
+{"name":"teledrive-engine","private":true,"version":"1.0.0","scripts":{"build":"node build.mjs"},"dependencies":{"big-integer":"^1.6.52","buffer":"^6.0.3","esbuild":"^0.28.2","esbuild-plugin-polyfill-node":"^0.3.0","process":"^0.11.10","telegram":"^2.26.22"}}

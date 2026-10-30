@@ -1,0 +1,1 @@
+-keepclassmembers class app.teledrive.JsEngine$Bridge { @android.webkit.JavascriptInterface <methods>; }

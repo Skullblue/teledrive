@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teledrive – Telegram cloud storage</title>
+<style>
+:root{--bg:#f5f7fa;--panel:#fff;--panel2:#eef2f7;--text:#0f1722;--muted:#6b7686;--line:#e2e8f0;--accent:#229ed9;--accent2:#1a86bb;--accent-soft:#e3f4fc;--danger:#e5484d;--ok:#2fa56b;--shadow:0 1px 2px rgba(16,24,40,.06),0 4px 14px rgba(16,24,40,.06)}
+:root[data-theme=dark]{--bg:#0e141b;--panel:#161e27;--panel2:#1d2833;--text:#e8eef5;--muted:#8896a7;--line:#263340;--accent:#3cb4ee;--accent2:#5cc3f3;--accent-soft:#12303f;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.35)}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:10px;cursor:pointer;transition:.15s}
+.btn:hover{background:var(--panel2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}.btn.primary:hover{background:var(--accent2)}
+.btn.danger{color:var(--danger)}.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:var(--panel2)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+input[type=text],input[type=password],select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);outline:none}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+/* setup */
+.setup{min-height:100%;display:grid;place-items:center;padding:24px}
+.setup .box{width:100%;max-width:560px;background:var(--panel);border-radius:20px;box-shadow:var(--shadow);padding:32px}
+.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px}
+.logo b{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#37aee2,#1e96c8);display:grid;place-items:center;color:#fff}
+.steps{margin:18px 0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:0 0 12px 36px;color:var(--muted)}
+.steps li:before{content:counter(s);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:12px}
+.steps b{color:var(--text)}
+.field{margin:12px 0}.field label{display:block;font-weight:600;margin-bottom:6px}
+.row{display:flex;gap:8px;align-items:center}
+.hint{color:var(--muted);font-size:12.5px;margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.err{color:var(--danger);margin-top:10px}
+a{color:var(--accent)}
+code{background:var(--panel2);padding:1px 6px;border-radius:6px;font-size:12.5px}
+/* app */
+.app{display:grid;grid-template-columns:248px 1fr;height:100vh}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+.side .logo{padding:4px 8px 16px}
+.nav{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:10px;cursor:pointer;color:var(--muted);border:0;background:none;text-align:left;width:100%}
+.nav:hover{background:var(--panel2);color:var(--text)}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .n{margin-left:auto;font-size:12px;opacity:.8}
+.grow{flex:1}
+.usage{background:var(--panel2);border-radius:12px;padding:12px;font-size:12.5px;color:var(--muted)}
+.usage b{display:block;color:var(--text);font-size:16px}
+.main{display:flex;flex-direction:column;min-width:0;height:100vh}
+.top{display:flex;gap:10px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+.search{position:relative;flex:1;max-width:520px}.search svg{position:absolute;left:12px;top:11px;color:var(--muted)}.search input{padding-left:38px;background:var(--panel2);border-color:transparent}
+.sync{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}.dot.busy{background:var(--accent);animation:p 1s infinite}.dot.err{background:var(--danger)}
+@keyframes p{50%{opacity:.3}}
+.bar{display:flex;align-items:center;gap:10px;padding:12px 22px;min-height:56px}
+.crumbs{display:flex;align-items:center;gap:4px;font-size:16px;font-weight:600;flex-wrap:wrap}
+.crumbs a{cursor:pointer;padding:2px 6px;border-radius:6px}.crumbs a:hover{background:var(--panel2)}.crumbs span{color:var(--muted)}
+.content{flex:1;overflow:auto;padding:0 22px 40px;position:relative}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:14px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+.card:hover{transform:translateY(-2px);border-color:var(--accent)}
+.card.sel{outline:2px solid var(--accent);background:var(--accent-soft)}
+.thumb{height:112px;display:grid;place-items:center;background:var(--panel2);color:var(--muted);overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover}.thumb svg.i{width:38px;height:38px;stroke-width:1.4}
+.card.dir .thumb{background:var(--accent-soft);color:var(--accent)}
+.meta{padding:10px 12px}.nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sub{color:var(--muted);font-size:12px}
+.ck{position:absolute;left:8px;top:8px;width:20px;height:20px;border-radius:6px;border:2px solid #fff;background:rgba(0,0,0,.25);display:grid;place-items:center;color:#fff;opacity:0;transition:.1s}
+.card:hover .ck,.sel .ck,.sel-mode .ck{opacity:1}.sel .ck{background:var(--accent);border-color:var(--accent)}
+.ck svg{width:13px;height:13px;stroke-width:3;display:none}.sel .ck svg{display:block}
+.list .card{display:flex;align-items:center;border-radius:10px;box-shadow:none;margin-bottom:6px}
+.list .card:hover{transform:none}
+.list .thumb{width:46px;height:46px;border-radius:10px;margin:6px 10px 6px 34px;flex:none}.list .thumb svg.i{width:22px;height:22px}
+.list .meta{flex:1;min-width:0;padding:6px 12px 6px 0;display:flex;gap:16px;align-items:center}.list .nm{flex:1}.list .sub{width:90px;text-align:right}.list .ck{top:50%;transform:translateY(-50%)}
+.empty{text-align:center;color:var(--muted);padding:80px 20px}.empty svg.i{width:56px;height:56px;stroke-width:1.2;color:var(--accent)}.empty h3{color:var(--text);margin:14px 0 4px}
+.selbar{display:flex;gap:8px;align-items:center;background:var(--accent-soft);border-radius:12px;padding:6px 10px;color:var(--accent);font-weight:600}
+.drop{position:fixed;inset:0;background:rgba(34,158,217,.14);border:3px dashed var(--accent);display:none;place-items:center;font-size:22px;font-weight:700;color:var(--accent);z-index:50;backdrop-filter:blur(2px)}
+.drop.on{display:grid}
+.up{position:fixed;right:20px;bottom:20px;width:340px;max-height:50vh;overflow:auto;background:var(--panel);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25);z-index:40;border:1px solid var(--line)}
+.up h4{margin:0;padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+.up .it{padding:10px 14px;border-bottom:1px solid var(--line)}.up .it:last-child{border:0}
+.prog{height:5px;border-radius:5px;background:var(--panel2);margin-top:6px;overflow:hidden}.prog i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1b2430;color:#fff;padding:10px 16px;border-radius:12px;z-index:100;box-shadow:0 8px 30px rgba(0,0,0,.3);max-width:90vw}
+dialog{border:0;border-radius:18px;padding:0;background:var(--panel);color:var(--text);box-shadow:0 20px 70px rgba(0,0,0,.4);max-width:min(92vw,900px);width:100%}
+dialog::backdrop{background:rgba(8,12,18,.55);backdrop-filter:blur(3px)}
+.dlg{padding:22px}.dlg h3{margin:0 0 12px}.dlg .act{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.pv{display:grid;place-items:center;min-height:240px;max-height:70vh;overflow:auto;background:var(--panel2);border-radius:12px}.pv img,.pv video{max-width:100%;max-height:70vh}.pv iframe{width:100%;height:70vh;border:0}
+.flist{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:12px}.flist div{padding:9px 12px;cursor:pointer;display:flex;gap:8px;align-items:center}.flist div:hover{background:var(--panel2)}
+.top{flex-wrap:wrap}
+@media(max-width:820px){.lbl{display:none}.top .btn{padding:8px 10px}.search{min-width:140px}.app{grid-template-columns:1fr;grid-template-rows:auto 1fr;height:100vh}.side{flex-direction:row;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid var(--line);align-items:center}.side .logo,.usage,.grow,.nav .n{display:none}.nav{width:auto;white-space:nowrap;padding:8px 12px}.main{height:auto;min-height:0;overflow:hidden}.top,.bar,.content{padding-left:14px;padding-right:14px}.up{left:10px;right:10px;width:auto}.list .sub.d{display:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="drop" id="drop">Drop files to upload to Telegram</div>
+<input type="file" id="pickFiles" multiple hidden>
+<input type="file" id="pickDir" webkitdirectory hidden>
+<dialog id="dlg"></dialog>
+<script>
+<!--ENGINE-->
+</script>
+<script>
+'use strict';
+/* ===== constants & helpers ===== */
+const TGE = window.TGE;   // MTProto engine (phone-number login, no bot) – inlined above
+const $ = (s, e = document) => e.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join(''));
+const fmtSize = n => { if (n < 1024) return n + ' B'; const u = ['KB','MB','GB','TB']; let i = -1; do { n /= 1024; i++; } while (n >= 1024 && i < 3); return n.toFixed(n < 10 ? 1 : 0) + ' ' + u[i]; };
+const fmtDate = t => t ? new Date(t).toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'}) : '';
+const join = (p, n) => (p === '/' ? '' : p) + '/' + n;
+const MIME = {jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',heic:'image/heic',mp4:'video/mp4',mov:'video/quicktime',mkv:'video/x-matroska',webm:'video/webm',mp3:'audio/mpeg',m4a:'audio/mp4',wav:'audio/wav',ogg:'audio/ogg',flac:'audio/flac',pdf:'application/pdf',txt:'text/plain',md:'text/markdown',csv:'text/csv',json:'application/json',zip:'application/zip',rar:'application/vnd.rar','7z':'application/x-7z-compressed'};
+const guessMime = n => MIME[(n.split('.').pop() || '').toLowerCase()] || 'application/octet-stream';
+
+const ICONS = {
+  cloud:'<path d="M17.5 19a4.5 4.5 0 0 0 .4-9A6 6 0 0 0 6.3 8.6 5 5 0 0 0 7 19z"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/>',
+  video:'<rect x="3" y="5" width="13" height="14" rx="2"/><path d="m16 10 5-3v10l-5-3"/>',
+  audio:'<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+  doc:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>',
+  other:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  upload:'<path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  download:'<path d="M12 4v12m0 0-4-4m4 4 4-4M4 20h16"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12M9 7V4h6v3"/>',
+  move:'<path d="M5 12h14m0 0-5-5m5 5-5 5"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  grid:'<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
+  list:'<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>',
+  cog:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  check:'<path d="m5 12 5 5 9-10"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  phone:'<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+  all:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  fup:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 16v-5m0 0-2 2m2-2 2 2"/>'
+};
+const ic = n => `<svg class="i" viewBox="0 0 24 24">${ICONS[n] || ICONS.file}</svg>`;
+
+/* ===== storage ===== */
+const idb = new Promise((res, rej) => { const r = indexedDB.open('teledrive', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const kv = {
+  async get(k) { const d = await idb; return new Promise((res, rej) => { const q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); },
+  async set(k, v) { const d = await idb; return new Promise((res, rej) => { const q = d.transaction('kv', 'readwrite').objectStore('kv').put(v, k); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }); },
+  async clear() { const d = await idb; return new Promise(res => { d.transaction('kv', 'readwrite').objectStore('kv').clear().onsuccess = () => res(); }); }
+};
+const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+/* ===== state ===== */
+let cfg = lsGet('td.cfg', null);
+let idx = { v: 1, files: [], folders: [], dead: [] };
+const S = { path: '/', cat: 'all', q: '', view: lsGet('td.view', 'grid'), sort: lsGet('td.sort', 'new'), sel: new Set(), sync: 'idle', syncMsg: '', uploads: [], loading: false };
+let theme = lsGet('td.theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+document.documentElement.dataset.theme = theme;
+
+/* ===== Telegram session (your own account via MTProto – no bot) ===== */
+let ready = Promise.resolve();
+function startSession() {
+  ready = (async () => {
+    const r = await TGE.init({ apiId: cfg.apiId, apiHash: cfg.apiHash, session: cfg.session });
+    if (!r.authorized) throw Object.assign(new Error('Your Telegram session has ended'), { signedOut: true });
+    TGE.setStorage(cfg.storage);
+  })();
+  ready.catch(() => {});
+  return ready;
+}
+async function ensure() { try { await ready; } catch (e) { if (e.signedOut) throw e; await startSession(); } }
+
+/* ===== index (a JSON document stored in your private storage channel) ===== */
+function merge(r) {
+  if (!r) return;
+  const dead = new Set([...(idx.dead || []), ...(r.dead || [])]);
+  const map = new Map();
+  for (const f of [...(r.files || []), ...idx.files]) { const o = map.get(f.id); if (!o || (f.mt || f.ts || 0) >= (o.mt || o.ts || 0)) map.set(f.id, f); }
+  idx.files = [...map.values()].filter(f => !dead.has(f.id));
+  idx.folders = [...new Set([...(idx.folders || []), ...(r.folders || [])])].filter(p => !dead.has('dir:' + p));
+  idx.dead = [...dead];
+}
+const saveLocal = () => kv.set('idx', idx);
+let dirty = false, syncTimer = null, syncing = false;
+function touch() { dirty = true; saveLocal(); clearTimeout(syncTimer); syncTimer = setTimeout(pushSync, 1500); setSync('busy', 'Pending…'); }
+function setSync(state, msg) { S.sync = state; S.syncMsg = msg; const el = $('#syncchip'); if (el) el.innerHTML = syncHtml(); }
+function sessionEnded() { localStorage.removeItem('td.cfg'); Object.assign(SU, { step: 'phone', apiId: cfg.apiId, apiHash: cfg.apiHash, err: 'Your Telegram session ended. Please sign in again.', busy: false }); cfg = null; render(); }
+async function pushSync() {
+  if (syncing) { syncTimer = setTimeout(pushSync, 1500); return; }
+  syncing = true; setSync('busy', 'Syncing…');
+  try {
+    await ensure(); const rem = await TGE.fetchIndex(); merge(rem.idx); await saveLocal();
+    await TGE.pushIndex(idx, rem.mids);
+    dirty = false; setSync('ok', 'Synced');
+  } catch (e) { if (e.signedOut) return sessionEnded(); setSync('err', 'Sync failed'); toast('Index sync failed: ' + e.message); syncTimer = setTimeout(pushSync, 20000); }
+  finally { syncing = false; if (cfg) $('.app') ? renderApp() : renderMain(); }
+}
+async function cleanDeletedFiles() {
+  if (!idx.files.length) return;
+  try {
+    const missingIds = await TGE.verifyFilesExist(idx.files);
+    if (missingIds && missingIds.length > 0) {
+      const missingSet = new Set(missingIds);
+      for (const id of missingIds) {
+        idx.dead.push(id);
+        await kv.set('th:' + id, null);
+        const u = thumbURL.get(id);
+        if (u) { URL.revokeObjectURL(u); thumbURL.delete(id); }
+      }
+      idx.files = idx.files.filter(f => !missingSet.has(f.id));
+      await saveLocal();
+      touch();
+      if (cfg) $('.app') ? renderApp() : renderMain();
+    }
+  } catch (e) {
+    console.warn('cleanDeletedFiles error:', e);
+  }
+}
+async function pullSync() {
+  setSync('busy', 'Loading…');
+  try {
+    await ensure(); const rem = await TGE.fetchIndex(); merge(rem.idx); await saveLocal();
+    setSync(dirty ? 'busy' : 'ok', dirty ? 'Pending…' : 'Synced');
+    if (dirty) pushSync();
+    cleanDeletedFiles();
+  }
+  catch (e) { if (e.signedOut) return sessionEnded(); setSync('err', 'Offline'); toast('Could not load index: ' + e.message); }
+  if (cfg) $('.app') ? renderApp() : renderMain();
+}
+
+/* ===== UI helpers ===== */
+function toast(msg, ms = 3500) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), ms); }
+const dlg = $('#dlg');
+function modal(html) { dlg.innerHTML = `<div class="dlg">${html}</div>`; if (!dlg.open) dlg.showModal(); return dlg; }
+function closeModal() { if (dlg.open) dlg.close(); }
+dlg.addEventListener('close', () => { dlg.querySelectorAll('video,audio').forEach(m => m.pause()); const u = dlg.dataset.url; if (u) { URL.revokeObjectURL(u); delete dlg.dataset.url; } });
+function ask(title, value = '', ok = 'OK') {
+  return new Promise(res => {
+    modal(`<h3>${esc(title)}</h3><input type="text" id="ask" value="${esc(value)}"><div class="act"><button class="btn" id="c">Cancel</button><button class="btn primary" id="o">${ok}</button></div>`);
+    const i = $('#ask'); i.focus(); i.select();
+    const done = v => { dlg.onclose = null; closeModal(); res(v); };
+    $('#c').onclick = () => done(null); $('#o').onclick = () => done(i.value.trim() || null);
+    i.onkeydown = e => { if (e.key === 'Enter') done(i.value.trim() || null); };
+    dlg.onclose = () => res(null);
+  });
+}
+function confirmBox(title, text, ok = 'Delete') {
+  return new Promise(res => {
+    modal(`<h3>${esc(title)}</h3><div style="color:var(--muted)">${esc(text)}</div><div class="act"><button class="btn" id="c">Cancel</button><button class="btn primary" id="o" style="background:var(--danger);border-color:var(--danger)">${ok}</button></div>`);
+    $('#c').onclick = () => { dlg.onclose = null; closeModal(); res(false); }; $('#o').onclick = () => { dlg.onclose = null; closeModal(); res(true); };
+    dlg.onclose = () => res(false);
+  });
+}
+function allFolders() {
+  const s = new Set(['/']);
+  for (const p of [...idx.folders, ...idx.files.map(f => f.folder)]) { let acc = ''; for (const seg of p.split('/').filter(Boolean)) { acc += '/' + seg; s.add(acc); } }
+  return [...s].sort();
+}
+function pickFolder(title) {
+  return new Promise(res => {
+    const list = allFolders();
+    modal(`<h3>${esc(title)}</h3><div class="flist">${list.map(p => `<div data-p="${esc(p)}">${ic('folder')}<span>${esc(p)}</span></div>`).join('')}</div><div class="act"><button class="btn" id="c">Cancel</button></div>`);
+    dlg.querySelectorAll('.flist div').forEach(d => d.onclick = () => { dlg.onclose = null; closeModal(); res(d.dataset.p); });
+    $('#c').onclick = () => { dlg.onclose = null; closeModal(); res(null); }; dlg.onclose = () => res(null);
+  });
+}
+
+/* ===== categories ===== */
+function cat(f) {
+  const m = f.mime || '', n = f.name || '';
+  if (m.startsWith('image/')) return 'image'; if (m.startsWith('video/')) return 'video'; if (m.startsWith('audio/')) return 'audio';
+  if (/pdf|word|sheet|presentation|text\/|opendocument|rtf|epub|json/.test(m) || /\.(docx?|xlsx?|pptx?|txt|md|csv|pdf|odt|rtf)$/i.test(n)) return 'doc';
+  if (/zip|rar|7z|tar|gzip/.test(m) || /\.(zip|rar|7z|tar|gz)$/i.test(n)) return 'archive';
+  return 'other';
+}
+const CATS = [['all', 'All files', 'all'], ['image', 'Photos', 'image'], ['video', 'Videos', 'video'], ['audio', 'Audio', 'audio'], ['doc', 'Documents', 'doc'], ['archive', 'Archives', 'archive']];
+
+/* ===== thumbnails ===== */
+const thumbURL = new Map(); let thumbBusy = 0; const thumbQ = []; const thumbTried = new Set();
+async function makeThumb(blob) {
+  const bmp = await createImageBitmap(blob); const s = 256 / Math.max(bmp.width, bmp.height, 1), k = Math.min(1, s);
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); bmp.close && bmp.close();
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.75));
+}
+async function loadThumb(f, el) {
+  if (thumbURL.has(f.id)) return setThumb(el, thumbURL.get(f.id));
+  let b = await kv.get('th:' + f.id);
+  if (!b && !thumbTried.has(f.id) && f.size <= 8_000_000 && /^image\/(jpeg|png|gif|webp)/.test(f.mime)) {
+    thumbTried.add(f.id);
+    try {
+      const parts = []; await ensure(); for (const c of (f.chunks || [])) parts.push(...await TGE.download(c.mid));
+      b = await makeThumb(new Blob(parts, { type: f.mime })); await kv.set('th:' + f.id, b);
+    } catch (e) {
+      if (/no longer exists in Telegram/i.test(e.message)) {
+        idx.dead.push(f.id);
+        idx.files = idx.files.filter(x => x.id !== f.id);
+        await kv.set('th:' + f.id, null);
+        touch();
+        if (cfg) $('.app') ? renderApp() : renderMain();
+        return;
+      }
+    }
+  }
+  if (b) { const u = URL.createObjectURL(b); thumbURL.set(f.id, u); setThumb(el, u); }
+}
+const setThumb = (el, u) => { if (el.isConnected) el.innerHTML = `<img src="${u}" alt="" loading="lazy">`; };
+const io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { io.unobserve(e.target); thumbQ.push(e.target); } pumpThumbs(); }, { rootMargin: '200px' });
+async function pumpThumbs() { while (thumbBusy < 3 && thumbQ.length) { const el = thumbQ.shift(), f = idx.files.find(x => x.id === el.dataset.id); if (!f) continue; thumbBusy++; loadThumb(f, el).finally(() => { thumbBusy--; pumpThumbs(); }); } }
+
+/* ===== listing ===== */
+function listing() {
+  let files = idx.files, dirs = [];
+  const q = S.q.trim().toLowerCase();
+  if (q) files = files.filter(f => f.name.toLowerCase().includes(q) || f.folder.toLowerCase().includes(q));
+  else if (S.cat !== 'all') files = files.filter(f => cat(f) === S.cat);
+  else {
+    const base = S.path === '/' ? '/' : S.path + '/', set = new Set();
+    for (const p of [...idx.folders, ...idx.files.map(f => f.folder)]) if (p !== S.path && p.startsWith(base)) set.add(p.slice(base.length).split('/')[0]);
+    dirs = [...set].sort((a, b) => a.localeCompare(b));
+    files = files.filter(f => f.folder === S.path);
+  }
+  const srt = { new: (a, b) => (b.up || b.ts || 0) - (a.up || a.ts || 0), old: (a, b) => (a.up || a.ts || 0) - (b.up || b.ts || 0), name: (a, b) => a.name.localeCompare(b.name), size: (a, b) => b.size - a.size }[S.sort];
+  return { dirs, files: [...files].sort(srt) };
+}
+const syncHtml = () => `<span class="dot ${S.sync === 'busy' ? 'busy' : S.sync === 'err' ? 'err' : ''}"></span>${esc(S.syncMsg || 'Synced')}`;
+
+/* ===== render ===== */
+function render() { cfg ? renderApp() : renderSetup(); }
+const SU = { step: 'api', apiId: '', apiHash: '', phone: '', err: '', busy: false };
+function onLoginStep(step, msg) {
+  SU.busy = false; SU.err = msg || '';
+  if (step === 'code' || step === 'password') { SU.step = step; renderSetup(); }
+  else if (step === 'error') { SU.step = 'phone'; renderSetup(); }
+  else if (step === 'done') finishLogin();
+}
+async function finishLogin() {
+  SU.step = 'finish'; SU.busy = true; renderSetup();
+  try {
+    const me = await TGE.me(); const storage = await TGE.ensureStorage();
+    cfg = { apiId: SU.apiId, apiHash: SU.apiHash, session: TGE.session(), storage, name: me.name, phone: me.phone };
+    lsSet('td.cfg', cfg); await kv.clear(); idx = { v: 1, files: [], folders: [], dead: [] }; ready = Promise.resolve();
+    Object.assign(SU, { step: 'api', phone: '', err: '', busy: false }); render(); pullSync();
+  } catch (e) { SU.step = 'phone'; SU.err = e.message || String(e); SU.busy = false; renderSetup(); }
+}
+async function setupNext() {
+  const s = SU; s.err = '';
+  if (s.step === 'api') {
+    s.apiId = $('#apiId').value.trim(); s.apiHash = $('#apiHash').value.trim();
+    if (!/^\d+$/.test(s.apiId) || !/^[0-9a-f]{32}$/i.test(s.apiHash)) { s.err = 'Enter the numeric API ID and the 32-character API hash from my.telegram.org.'; return renderSetup(); }
+    s.busy = true; renderSetup();
+    try { await TGE.init({ apiId: s.apiId, apiHash: s.apiHash, session: '' }); s.step = 'phone'; }
+    catch (e) { s.err = 'Could not reach Telegram: ' + (e.message || e); }
+    s.busy = false; return renderSetup();
+  }
+  if (s.step === 'phone') {
+    s.phone = $('#phone').value.replace(/[\s()-]/g, '');
+    if (!/^\+\d{7,15}$/.test(s.phone)) { s.err = 'Use the international format with country code, e.g. +8801712345678.'; return renderSetup(); }
+    s.busy = true; renderSetup(); TGE.onStep = onLoginStep; TGE.login(s.phone); return;
+  }
+  if (s.step === 'code') { const c = $('#code').value.trim(); if (!c) return; s.busy = true; renderSetup(); TGE.submitCode(c); return; }
+  if (s.step === 'password') { const pw = $('#pw').value; if (!pw) return; s.busy = true; renderSetup(); TGE.submitPassword(pw); }
+}
+function renderSetup() {
+  const s = SU, L = { api: 'Continue', phone: 'Send code', code: 'Verify', password: 'Unlock', finish: 'Please wait' }[s.step];
+  const bodies = {
+    api: `<p style="color:var(--muted);margin:10px 0 0">Sign in with <b>your own Telegram account</b> – no bot, no channel to create. Telegram asks every app for a free <b>API ID</b> and <b>API hash</b> (one-time, about a minute):</p>
+      <ol class="steps"><li>Open <a href="https://my.telegram.org/apps" target="_blank" rel="noopener">my.telegram.org/apps</a> and log in with your phone number.</li>
+      <li>Create an application (any name, e.g. “Teledrive”).</li><li>Copy <b>api_id</b> and <b>api_hash</b> below.</li></ol>
+      <div class="field"><label>API ID</label><input type="text" id="apiId" inputmode="numeric" value="${esc(s.apiId)}" placeholder="1234567"></div>
+      <div class="field"><label>API hash</label><input type="password" id="apiHash" value="${esc(s.apiHash)}" placeholder="32 characters" autocomplete="off"></div>
+      <div class="field"><label>Setup code <span style="font-weight:400;color:var(--muted)">(optional, from another device)</span></label><input type="text" id="sc" placeholder="Paste to fill the fields above"></div>`,
+    phone: `<p style="color:var(--muted);margin:14px 0 0">Enter the phone number of your Telegram account. Telegram will send a login code to your Telegram app.</p>
+      <div class="field"><label>Phone number</label><input type="text" id="phone" inputmode="tel" value="${esc(s.phone)}" placeholder="+8801712345678" autofocus></div>`,
+    code: `<p style="color:var(--muted);margin:14px 0 0">Enter the code Telegram just sent to <b>${esc(s.phone)}</b> (check the “Telegram” chat in your Telegram app, or SMS).</p>
+      <div class="field"><label>Login code</label><input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="12345" autofocus></div>`,
+    password: `<p style="color:var(--muted);margin:14px 0 0">Your account has two-step verification. Enter your Telegram cloud password.</p>
+      <div class="field"><label>Password</label><input type="password" id="pw" autofocus></div>`,
+    finish: `<p style="color:var(--muted);margin:24px 0">Setting up your private storage channel…</p>`,
+  };
+  $('#root').innerHTML = `<div class="setup"><div class="box"><div class="logo"><b>${ic('cloud')}</b>Teledrive</div>${bodies[s.step]}
+    <div class="err" id="err">${esc(s.err)}</div>
+    <div class="row" style="margin-top:16px;justify-content:space-between"><button class="btn" id="themeBtn">${ic('sun')}</button>
+    <div class="row">${s.step === 'code' || s.step === 'password' ? '<button class="btn" id="back">Back</button>' : ''}<button class="btn primary" id="next" ${s.busy ? 'disabled' : ''}>${s.busy ? 'Working…' : L}</button></div></div></div></div>`;
+  $('#themeBtn').onclick = toggleTheme; $('#next').onclick = setupNext;
+  const back = $('#back'); if (back) back.onclick = () => { SU.step = 'phone'; SU.err = ''; SU.busy = false; renderSetup(); };
+  document.querySelectorAll('.box input').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') setupNext(); });
+  const sc = $('#sc'); if (sc) sc.oninput = e => { try { const o = JSON.parse(atob(e.target.value.trim())); $('#apiId').value = o.a; $('#apiHash').value = o.h; } catch {} };
+  const f = $('.box input'); f && f.focus();
+}
+function renderApp() {
+  const counts = {}; for (const f of idx.files) counts[cat(f)] = (counts[cat(f)] || 0) + 1;
+  const total = idx.files.reduce((a, f) => a + f.size, 0);
+  const phone = idx.files.filter(f => f.src === 'android').length;
+  $('#root').innerHTML = `<div class="app">
+  <aside class="side">
+    <div class="logo"><b>${ic('cloud')}</b>Teledrive</div>
+    ${CATS.map(([k, n, i]) => `<button class="nav ${S.cat === k && !S.q ? 'on' : ''}" data-cat="${k}">${ic(i)}${n}<span class="n">${k === 'all' ? idx.files.length : counts[k] || 0}</span></button>`).join('')}
+    <button class="nav" data-act="phone">${ic('phone')}Phone backups<span class="n">${phone}</span></button>
+    <div class="grow"></div>
+    <div class="usage"><b>${fmtSize(total)}</b>${idx.files.length} files in “${esc(cfg.title || 'Telegram')}”</div>
+    <button class="nav" data-act="settings">${ic('cog')}Settings</button>
+  </aside>
+  <section class="main">
+    <div class="top">
+      <div class="search">${ic('search')}<input type="text" id="q" placeholder="Search files…" value="${esc(S.q)}"></div>
+      <div class="sync" id="syncchip">${syncHtml()}</div>
+      <button class="btn ghost" data-act="theme" title="Theme">${ic('sun')}</button>
+      <button class="btn" data-act="newfolder">${ic('plus')}<span class="lbl">New folder</span></button>
+      <button class="btn" data-act="upDir">${ic('fup')}<span class="lbl">Upload folder</span></button>
+      <button class="btn primary" data-act="upFiles">${ic('upload')}<span class="lbl">Upload</span></button>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="content" id="content"></div>
+  </section></div><div id="uploads"></div>`;
+  $('#q').oninput = e => { S.q = e.target.value; renderMain(); };
+  renderMain(); renderUploads();
+}
+function renderMain() {
+  const bar = $('#bar'), content = $('#content'); if (!bar || !content) return;
+  const { dirs, files } = listing();
+  let crumbs;
+  if (S.q) crumbs = `<div class="crumbs">Results for “${esc(S.q)}”</div>`;
+  else if (S.cat !== 'all') crumbs = `<div class="crumbs">${esc(CATS.find(c => c[0] === S.cat)[1])}</div>`;
+  else { const segs = S.path.split('/').filter(Boolean); let acc = ''; crumbs = `<div class="crumbs"><a data-go="/">My files</a>${segs.map(s => { acc += '/' + s; return `<span>/</span><a data-go="${esc(acc)}">${esc(s)}</a>`; }).join('')}</div>`; }
+  const n = S.sel.size;
+  bar.innerHTML = crumbs + '<div class="grow" style="flex:1"></div>' + (n ? `<div class="selbar">${n} selected
+      <button class="btn ghost" data-act="dl">${ic('download')}Download</button>${n === 1 ? `<button class="btn ghost" data-act="rename">${ic('edit')}Rename</button>` : ''}
+      <button class="btn ghost" data-act="move">${ic('move')}Move</button><button class="btn ghost danger" data-act="del">${ic('trash')}Delete</button><button class="btn ghost" data-act="clear">${ic('x')}</button></div>` : '')
+    + `<select id="sort" style="width:auto"><option value="new">Newest</option><option value="old">Oldest</option><option value="name">Name</option><option value="size">Size</option></select>
+       <button class="btn ghost" data-act="view">${ic(S.view === 'grid' ? 'list' : 'grid')}</button>`;
+  $('#sort').value = S.sort; $('#sort').onchange = e => { S.sort = e.target.value; lsSet('td.sort', S.sort); renderMain(); };
+  if (!dirs.length && !files.length) {
+    content.className = 'content';
+    content.innerHTML = `<div class="empty">${ic('cloud')}<h3>${idx.files.length ? 'Nothing here' : S.sync === 'busy' ? 'Loading your drive…' : 'Your drive is empty'}</h3><div>Drag &amp; drop files anywhere, or press <b>Upload</b>.</div></div>`; return;
+  }
+  const card = (k, id, icon, name, sub, sub2, selected, thumb) => `<div class="card ${k === 'dir' ? 'dir' : ''} ${selected ? 'sel' : ''}" data-${k}="${esc(id)}"><div class="ck" data-ck>${ic('check')}</div><div class="thumb" ${thumb ? `data-id="${esc(id)}" data-th` : ''}>${ic(icon)}</div><div class="meta"><div class="nm" title="${esc(name)}">${esc(name)}</div><div class="sub">${sub}</div>${S.view === 'list' ? `<div class="sub d">${sub2}</div>` : ''}</div></div>`;
+  content.className = 'content ' + (S.view === 'list' ? 'list' : '') + (n ? ' sel-mode' : '');
+  content.innerHTML = `<div class="${S.view === 'grid' ? 'grid' : ''}">` +
+    dirs.map(d => card('dir', join(S.path, d), 'folder', d, 'Folder', '', S.sel.has('dir:' + join(S.path, d)), false)).join('') +
+    files.map(f => card('file', f.id, cat(f), f.name, fmtSize(f.size) + (S.view === 'grid' ? ' · ' + fmtDate(f.up || f.ts) : ''), fmtDate(f.up || f.ts), S.sel.has(f.id), cat(f) === 'image')).join('') + '</div>';
+  content.querySelectorAll('[data-th]').forEach(el => io.observe(el));
+}
+function renderUploads() {
+  const el = $('#uploads'); if (!el) return;
+  if (!S.uploads.length) { el.innerHTML = ''; return; }
+  const act = S.uploads.filter(u => u.state === 'queued' || u.state === 'uploading').length;
+  el.innerHTML = `<div class="up"><h4><span>${act ? `Uploading ${act} file${act > 1 ? 's' : ''}` : 'Uploads complete'}</span><button class="btn ghost" style="padding:0 6px" data-act="closeUp">${ic('x')}</button></h4>
+    ${S.uploads.slice(-30).map(u => `<div class="it"><div class="nm">${esc(u.name)}</div><div class="sub">${u.state === 'error' ? `<span style="color:var(--danger)">${esc(u.err)}</span>` : u.state === 'done' ? 'Done · ' + fmtSize(u.size) : u.state === 'queued' ? 'Waiting…' : fmtSize(u.done) + ' / ' + fmtSize(u.size)}</div>${u.state === 'uploading' ? `<div class="prog"><i style="width:${(u.done / u.size * 100).toFixed(1)}%"></i></div>` : ''}</div>`).join('')}</div>`;
+}
+function toggleTheme() { theme = theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = theme; lsSet('td.theme', theme); }
+
+/* ===== uploads ===== */
+const Q = []; let running = false;
+function enqueue(items) {
+  let skipped = 0;
+  for (const { file, folder } of items) {
+    if (!file.size) { skipped++; continue; }
+    const u = { id: uid(), name: file.name, size: file.size, done: 0, state: 'queued' };
+    S.uploads.push(u); Q.push({ u, file, folder });
+  }
+  if (skipped) toast(`${skipped} empty file(s) skipped (Telegram can't store 0-byte files)`);
+  renderUploads(); if (!running) runQueue();
+}
+async function runQueue() {
+  running = true;
+  while (Q.length) {
+    const { u, file, folder } = Q.shift(); u.state = 'uploading'; renderUploads();
+    try {
+      await ensure();
+      const rec = await TGE.upload({
+        name: file.name, size: file.size, mime: file.type || guessMime(file.name), folder, ts: file.lastModified, src: 'web',
+        read: async (o, l) => new Uint8Array(await file.slice(o, o + l).arrayBuffer()),
+        onProgress: n => { u.done = n; renderUploads(); },
+      });
+      const id = rec.id, mime = rec.mime; idx.files.push(rec);
+      if (mime.startsWith('image/')) makeThumb(file).then(b => b && kv.set('th:' + id, b)).catch(() => {});
+      u.state = 'done'; u.done = u.size; touch(); renderMain();
+    } catch (e) { u.state = 'error'; u.err = e.message; }
+    renderUploads();
+  }
+  running = false;
+}
+async function walkEntry(entry, prefix, out) {
+  if (entry.isFile) { const f = await new Promise(r => entry.file(r)); out.push({ file: f, folder: prefix }); }
+  else if (entry.isDirectory) {
+    const reader = entry.createReader(); let batch;
+    do { batch = await new Promise(r => reader.readEntries(r)); for (const e of batch) await walkEntry(e, join(prefix, entry.name), out); } while (batch.length);
+  }
+}
+function targetFolder() { return S.cat === 'all' && !S.q ? S.path : '/Uploads'; }
+$('#pickFiles').onchange = e => { enqueue([...e.target.files].map(file => ({ file, folder: targetFolder() }))); e.target.value = ''; };
+$('#pickDir').onchange = e => {
+  enqueue([...e.target.files].map(file => { const parts = (file.webkitRelativePath || file.name).split('/'); parts.pop(); const base = targetFolder(); return { file, folder: parts.length ? join(base, parts.join('/')) : base }; })); e.target.value = '';
+};
+let dragN = 0;
+addEventListener('dragenter', e => { if (!cfg) return; e.preventDefault(); dragN++; $('#drop').classList.add('on'); });
+addEventListener('dragleave', () => { if (--dragN <= 0) { dragN = 0; $('#drop').classList.remove('on'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', async e => {
+  e.preventDefault(); dragN = 0; $('#drop').classList.remove('on'); if (!cfg) return;
+  const out = [], base = targetFolder();
+  const entries = [...e.dataTransfer.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry());
+  if (entries.some(Boolean)) { for (const en of entries) if (en) await walkEntry(en, base, out); } else for (const f of e.dataTransfer.files) out.push({ file: f, folder: base });
+  enqueue(out);
+});
+
+/* ===== file ops ===== */
+async function pieces(f, onStep, sink) {
+  await ensure(); const out = [];
+  for (let i = 0; i < f.chunks.length; i++) { onStep && onStep(i + 1, f.chunks.length); const p = await TGE.download(f.chunks[i].mid, null, sink); if (!sink) out.push(...p); }
+  return out;
+}
+async function getBlob(f, onStep) { return new Blob(await pieces(f, onStep), { type: f.mime }); }
+async function downloadFile(f, handle) {
+  try {
+    if (handle) { const w = await handle.createWritable(); await pieces(f, null, ch => w.write(ch)); await w.close(); toast('Saved ' + f.name); return; }
+    toast(`Downloading ${f.name}…`);
+    const b = await getBlob(f); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = f.name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  } catch (e) {
+    if (/no longer exists in Telegram/i.test(e.message)) {
+      toast(`"${f.name}" was deleted from Telegram and has been removed.`);
+      idx.dead.push(f.id);
+      idx.files = idx.files.filter(x => x.id !== f.id);
+      await kv.set('th:' + f.id, null);
+      const u = thumbURL.get(f.id); if (u) { URL.revokeObjectURL(u); thumbURL.delete(f.id); }
+      touch();
+      if (cfg) $('.app') ? renderApp() : renderMain();
+      return;
+    }
+    toast('Download failed: ' + e.message);
+  }
+}
+async function preview(f) {
+  const c = cat(f), canView = (c === 'image' && !/heic/.test(f.mime)) || c === 'video' || c === 'audio' || f.mime === 'application/pdf' || /^text\//.test(f.mime);
+  modal(`<div class="row" style="justify-content:space-between"><div><h3 style="margin:0">${esc(f.name)}</h3><div class="sub">${fmtSize(f.size)} · ${esc(f.folder)} · ${fmtDate(f.up || f.ts)}</div></div><button class="btn ghost" id="pvx">${ic('x')}</button></div>
+    <div class="pv" id="pv" style="margin-top:14px">${canView && f.size < 300e6 ? `<div class="sub" id="pvs">Loading…</div>` : `<div class="empty" style="padding:40px">${ic(c)}<h3>No preview</h3></div>`}</div>
+    <div class="act"><button class="btn danger" id="pvd">${ic('trash')}Delete</button><button class="btn primary" id="pvdl">${ic('download')}Download</button></div>`);
+  $('#pvx').onclick = closeModal; $('#pvdl').onclick = () => downloadFile(f); $('#pvd').onclick = async () => { await deleteFiles([f.id]); };
+  if (!canView || f.size >= 300e6) return;
+  try {
+    const b = await getBlob(f, (i, n) => { const s = $('#pvs'); if (s) s.textContent = `Loading part ${i}/${n}…`; }); if (!dlg.open) return;
+    const u = URL.createObjectURL(b); dlg.dataset.url = u; const pv = $('#pv');
+    if (c === 'image') pv.innerHTML = `<img src="${u}">`; else if (c === 'video') pv.innerHTML = `<video src="${u}" controls autoplay></video>`; else if (c === 'audio') pv.innerHTML = `<audio src="${u}" controls autoplay></audio>`;
+    else if (f.mime === 'application/pdf') pv.innerHTML = `<iframe src="${u}"></iframe>`; else pv.innerHTML = `<pre style="white-space:pre-wrap;padding:16px;margin:0;width:100%">${esc((await b.text()).slice(0, 200000))}</pre>`;
+  } catch (e) {
+    if (/no longer exists in Telegram/i.test(e.message)) {
+      toast(`"${f.name}" was deleted from Telegram and has been removed.`);
+      idx.dead.push(f.id);
+      idx.files = idx.files.filter(x => x.id !== f.id);
+      await kv.set('th:' + f.id, null);
+      const u = thumbURL.get(f.id); if (u) { URL.revokeObjectURL(u); thumbURL.delete(f.id); }
+      touch();
+      closeModal();
+      if (cfg) $('.app') ? renderApp() : renderMain();
+      return;
+    }
+    const s = $('#pvs'); if (s) s.textContent = 'Preview failed: ' + e.message;
+  }
+}
+async function deleteFiles(ids) {
+  const fs = idx.files.filter(f => ids.includes(f.id)); if (!fs.length) return;
+  if (!await confirmBox('Delete ' + (fs.length === 1 ? fs[0].name : fs.length + ' files') + '?', 'This also removes the file from your Telegram channel.')) return;
+  const mids = fs.flatMap(f => (f.chunks || []).map(c => c.mid)).filter(m => typeof m === 'number');
+  if (mids.length) {
+    ensure().then(() => TGE.deleteMessages(mids)).catch(e => console.warn('Could not delete from Telegram: ' + e.message));
+  }
+  for (const f of fs) {
+    idx.dead.push(f.id);
+    await kv.set('th:' + f.id, null);
+    const u = thumbURL.get(f.id);
+    if (u) { URL.revokeObjectURL(u); thumbURL.delete(f.id); }
+  }
+  idx.files = idx.files.filter(f => !ids.includes(f.id));
+  S.sel.clear();
+  touch();
+  if (cfg) $('.app') ? renderApp() : renderMain();
+}
+function folderFiles(p) { return idx.files.filter(f => f.folder === p || f.folder.startsWith(p + '/')); }
+function selectedFileIds() { const ids = new Set(); for (const s of S.sel) { if (s.startsWith('dir:')) folderFiles(s.slice(4)).forEach(f => ids.add(f.id)); else ids.add(s); } return [...ids]; }
+
+/* ===== events ===== */
+document.addEventListener('click', async e => {
+  const t = e.target;
+  const goEl = t.closest('[data-go]'); if (goEl) { S.path = goEl.dataset.go; S.sel.clear(); return renderMain(); }
+  const catEl = t.closest('[data-cat]'); if (catEl) { S.cat = catEl.dataset.cat; S.q = ''; S.path = '/'; S.sel.clear(); return renderApp(); }
+  const actEl = t.closest('[data-act]');
+  if (actEl) return act(actEl.dataset.act);
+  const card = t.closest('.card'); if (!card) return;
+  const key = card.dataset.dir ? 'dir:' + card.dataset.dir : card.dataset.file;
+  if (t.closest('[data-ck]') || S.sel.size && (e.ctrlKey || e.metaKey || e.shiftKey || S.sel.size)) { S.sel.has(key) ? S.sel.delete(key) : S.sel.add(key); return renderMain(); }
+  if (card.dataset.dir) { S.path = card.dataset.dir; S.sel.clear(); return renderMain(); }
+  const f = idx.files.find(x => x.id === card.dataset.file); if (f) preview(f);
+});
+async function act(a) {
+  switch (a) {
+    case 'upFiles': $('#pickFiles').click(); break;
+    case 'upDir': $('#pickDir').click(); break;
+    case 'theme': toggleTheme(); break;
+    case 'view': S.view = S.view === 'grid' ? 'list' : 'grid'; lsSet('td.view', S.view); renderMain(); break;
+    case 'clear': S.sel.clear(); renderMain(); break;
+    case 'closeUp': S.uploads = S.uploads.filter(u => u.state === 'queued' || u.state === 'uploading'); renderUploads(); break;
+    case 'phone': S.cat = 'all'; S.q = ''; S.path = '/Phone'; S.sel.clear(); renderApp(); break;
+    case 'newfolder': { if (S.cat !== 'all' || S.q) { toast('Open “All files” to create folders'); break; } const n = await ask('New folder', ''); if (!n) break; const p = join(S.path, n.replace(/[\\/]+/g, '-')); idx.folders.push(p); idx.dead = idx.dead.filter(x => x !== 'dir:' + p); S.path = p; touch(); renderMain(); break; }
+    case 'rename': {
+      const key = [...S.sel][0]; if (key.startsWith('dir:')) { const old = key.slice(4), cur = old.split('/').pop(); const n = await ask('Rename folder', cur); if (!n || n === cur) break; const np = old.slice(0, old.lastIndexOf('/')) + '/' + n.replace(/[\\/]+/g, '-'); moveFolder(old, np); }
+      else { const f = idx.files.find(x => x.id === key); const n = await ask('Rename file', f.name); if (!n) break; f.name = n; f.mt = Date.now(); }
+      S.sel.clear(); touch(); renderMain(); break; }
+    case 'move': {
+      const dest = await pickFolder('Move to…'); if (!dest) break;
+      for (const s of S.sel) { if (s.startsWith('dir:')) { const old = s.slice(4); moveFolder(old, join(dest, old.split('/').pop())); } else { const f = idx.files.find(x => x.id === s); f.folder = dest; f.mt = Date.now(); } }
+      S.sel.clear(); touch(); renderMain(); break; }
+    case 'del': {
+      const dirs = [...S.sel].filter(s => s.startsWith('dir:')).map(s => s.slice(4)), ids = selectedFileIds();
+      if (dirs.length) {
+        if (!await confirmBox('Delete ' + dirs.length + ' folder(s)?', `This deletes ${ids.length} file(s) inside from Telegram too.`)) break;
+        const gone = idx.files.filter(f => ids.includes(f.id));
+        const mids = gone.flatMap(f => (f.chunks || []).map(c => c.mid)).filter(m => typeof m === 'number');
+        if (mids.length) {
+          ensure().then(() => TGE.deleteMessages(mids)).catch(e => console.warn('Could not delete from Telegram: ' + e.message));
+        }
+        for (const f of gone) {
+          idx.dead.push(f.id);
+          await kv.set('th:' + f.id, null);
+          const u = thumbURL.get(f.id);
+          if (u) { URL.revokeObjectURL(u); thumbURL.delete(f.id); }
+        }
+        idx.files = idx.files.filter(f => !ids.includes(f.id));
+        for (const d of dirs) {
+          idx.folders = idx.folders.filter(p => p !== d && !p.startsWith(d + '/'));
+          idx.dead.push('dir:' + d);
+        }
+        S.sel.clear(); touch(); renderApp();
+      }
+      else await deleteFiles(ids); break; }
+    case 'dl': {
+      const fs = idx.files.filter(f => selectedFileIds().includes(f.id));
+      for (const f of fs) { let h = null; if (window.showSaveFilePicker && f.size > 64e6) { try { h = await showSaveFilePicker({ suggestedName: f.name }); } catch { continue; } } await downloadFile(f, h); }
+      break; }
+    case 'settings': settings(); break;
+  }
+}
+function moveFolder(from, to) {
+  for (const f of idx.files) if (f.folder === from || f.folder.startsWith(from + '/')) { f.folder = to + f.folder.slice(from.length); f.mt = Date.now(); }
+  idx.folders = idx.folders.map(p => p === from || p.startsWith(from + '/') ? to + p.slice(from.length) : p); if (!idx.folders.includes(to)) idx.folders.push(to);
+}
+function settings() {
+  const code = btoa(JSON.stringify({ a: cfg.apiId, h: cfg.apiHash }));
+  modal(`<h3>Settings</h3>
+  <div class="field"><label>Signed in as</label><div>${esc(cfg.name)} <span class="sub">${cfg.phone ? '+' + esc(String(cfg.phone).replace(/^\+/, '')) : ''}</span></div></div>
+  <div class="field"><label>Storage</label><div>${esc(cfg.storage.title)} <span class="sub">private ${cfg.storage.kind === 'self' ? 'chat' : 'channel'} in your Telegram</span></div></div>
+  <div class="field"><label>Setup code for the Android app</label><div class="row"><input type="text" id="sc" readonly value="${esc(code)}"><button class="btn" id="cp">Copy</button></div><div class="hint">Contains only your API ID/hash – not your login. On the phone you sign in with your number again.</div></div>
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:16px"><button class="btn" id="rs">${ic('cloud')}Re-sync index</button><button class="btn" id="ex">${ic('download')}Export index (JSON)</button><button class="btn danger" id="lo">Log out</button></div>
+  <div class="hint" style="margin-top:14px">Files are stored as documents in the private channel “Teledrive Storage” (up to 2 GB each; larger files are split automatically). The file list is a <code>tgdrive-index.json</code> message in that channel – don't delete it or the channel.</div>
+  <div class="act"><button class="btn primary" id="cl">Close</button></div>`);
+  $('#cl').onclick = closeModal; $('#cp').onclick = () => { navigator.clipboard.writeText(code).then(() => toast('Copied')); };
+  $('#rs').onclick = async () => { closeModal(); toast('Syncing and verifying Telegram files…'); await pullSync(); toast('Sync complete'); };
+  $('#ex').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(idx, null, 1)], { type: 'application/json' })); a.download = 'tgdrive-index.json'; a.click(); };
+  $('#lo').onclick = async () => {
+    if (!await confirmBox('Log out?', 'Your files stay in Telegram. This ends this browser’s session and clears local data.', 'Log out')) return;
+    try { await ensure(); await TGE.logout(); } catch {}
+    localStorage.removeItem('td.cfg'); await kv.clear(); cfg = null; idx = { v: 1, files: [], folders: [], dead: [] }; Object.assign(SU, { step: 'api', err: '', busy: false }); render();
+  };
+}
+addEventListener('beforeunload', e => { if (running || dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ===== boot ===== */
+(async () => {
+  const saved = await kv.get('idx').catch(() => null); if (saved) idx = { v: 1, files: [], folders: [], dead: [], ...saved };
+  render();
+  if (cfg) { setSync('busy', 'Connecting…'); startSession().then(pullSync).catch(e => { if (e.signedOut) sessionEnded(); else { setSync('err', 'Offline'); toast('Could not connect to Telegram: ' + e.message); } }); }
+})();
+</script>
+</body>
+</html>
